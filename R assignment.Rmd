@@ -1,0 +1,112 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
+```{r}
+
+require(pacman)
+pacman::p_load(pacman, dplyr, GGally, ggplot2, ggthemes, 
+               ggvis, httr, lubridate, plotly, rio, rmarkdown, shiny, 
+               stringr, tidyr)
+               
+
+SW <- data.frame(starwars)
+
+str(SW)
+names(SW)
+head(SW, n = 15)
+View(SW)
+
+#User defined Function
+Get_hairskineyecolour <- function (name, data) {
+  name_index <- which(data$name == name)
+  if (length(name_index) == 0) {
+    return("Not Found")
+  } else {
+    return(c(eye_Color = data$eye_color[name_index],
+             skin_Color = data$skin_color[name_index],
+             hair_Color = data$hair_color[name_index]
+             ))
+  }
+}
+  
+Get_hairskineyecolour("Luke Skywalker", SW)  
+Get_hairskineyecolour("Thomas", SW)  
+
+#Filter
+SW_human <- filter(SW, species == "Human")
+View(SW_human)
+
+
+# identify the dependent variable (height) and independent variables (mass and species)
+dependent_var <- "height"
+independent_vars <- c("mass", "species")
+
+# reshape the data frame to create a new data frame with the independent variables as columns and the dependent variable as rows
+new_df <- SW %>% 
+  gather(key = independent_var, value = value, mass, species) %>% 
+  spread(key = independent_var, value) %>% 
+  select(height, mass, species)
+
+# check the structure of the new data frame
+str(new_df)
+
+
+
+#remove missing values
+SW_complete <- na.omit(SW)
+
+#remove duplicated from complete value df
+SW_complete_uni <- unique(SW_complete)
+
+#Reorder rows
+SW_complete_uni <- arrange(SW_complete_uni, 
+                           desc(SW_complete_uni$mass),
+                           desc(SW_complete_uni$birth_year))
+
+#Rename
+SW_complete_uni <- plyr::rename( SW_complete_uni, c("homeworld" = "homeplanet",
+                                    "films" = "movies"))
+#Add new variable
+SW_complete_uni <- mutate(SW_complete_uni, HMratio = SW_complete_uni$height / 
+                            SW_complete_uni$mass)
+
+#Create a training set using random number generator engine.
+
+# Load the data frame
+df <- data.frame(SW)
+
+# Load the caret library
+require(caret)
+
+# Set the seed for reproducibility
+set.seed(123)
+
+# Sample 75% of the data frame to create the training set
+require(dplyr)
+SW_training_set <- SW_complete_uni %>% 
+  sample_n(round(nrow(SW_complete_uni) * 0.75))
+
+# Summary
+summary(SW_complete_uni$height)
+range(SW_complete_uni$height)
+
+#Scatter plot
+require(ggplot2)
+plot(SW_complete_uni$mass, SW_complete_uni$height)
+
+#barchart
+SW_bar <- table(SW$eye_color)
+barplot(SW_bar)
+
+#regression
+#Load the data frame 
+df <- data.frame(SW) 
+#Calculate the correlation using lm() 
+model <- lm(SW_complete_uni$height ~ SW_complete_uni$mass) 
+#Print the correlation 
+print(summary(model))
+
+
+```
